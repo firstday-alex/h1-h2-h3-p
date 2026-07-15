@@ -125,9 +125,9 @@ export default function Home() {
       {error && <div className="error">{error}</div>}
 
       {result && (
-        <>
+        <div className="results">
           <div className="summary">
-            <span className="chip">
+            <span className="chip title-chip">
               <b>{result.title}</b>
             </span>
             <span className="chip">
@@ -188,7 +188,7 @@ export default function Home() {
             <span className="hint">Copy/paste into any tool.</span>
           </div>
           <textarea className="raw" readOnly value={result.markdown} />
-        </>
+        </div>
       )}
     </main>
   );
