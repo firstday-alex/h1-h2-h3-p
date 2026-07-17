@@ -3,8 +3,10 @@
 import { useMemo, useState } from "react";
 import type { ExtractResult } from "@/lib/types";
 import { analyzeNarrative, type NarrativeReport } from "@/lib/narrative";
-import { TreeView, collectHeadingIds } from "@/components/TreeView";
+import { TreeView, collectHeadingIds, availableLevels } from "@/components/TreeView";
 import { NarrativeReportView } from "@/components/NarrativeReport";
+
+const DEFAULT_LEVELS = [1, 2];
 
 const EXAMPLE = "https://firstday.com/pages/tdk-behind-the-science-lp";
 
@@ -16,9 +18,14 @@ export default function Home() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
   const [report, setReport] = useState<NarrativeReport | null>(null);
+  const [levels, setLevels] = useState<Set<number>>(new Set(DEFAULT_LEVELS));
 
   const allHeadingIds = useMemo(
     () => (result ? collectHeadingIds(result.root) : []),
+    [result],
+  );
+  const pageLevels = useMemo(
+    () => (result ? availableLevels(result.root) : []),
     [result],
   );
 
@@ -31,6 +38,7 @@ export default function Home() {
     setExpanded(new Set());
     setCopied(false);
     setReport(null);
+    setLevels(new Set(DEFAULT_LEVELS));
     try {
       const res = await fetch(`/api/scrape?url=${encodeURIComponent(trimmed)}`);
       const data = await res.json();
@@ -60,6 +68,15 @@ export default function Home() {
   }
   function collapseAll() {
     setExpanded(new Set());
+  }
+
+  function toggleLevel(level: number) {
+    setLevels((prev) => {
+      const next = new Set(prev);
+      if (next.has(level)) next.delete(level);
+      else next.add(level);
+      return next;
+    });
   }
 
   function toggleGrade() {
@@ -203,8 +220,32 @@ export default function Home() {
             </div>
           )}
 
+          {pageLevels.length > 0 && (
+            <div className="levels">
+              <span className="levels-label">Show levels</span>
+              {pageLevels.map((lvl) => {
+                const on = levels.has(lvl);
+                return (
+                  <button
+                    key={lvl}
+                    className={`level-toggle${on ? " on" : ""}`}
+                    onClick={() => toggleLevel(lvl)}
+                    aria-pressed={on}
+                  >
+                    H{lvl}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <div className="panel">
-            <TreeView root={result.root} expanded={expanded} onToggle={toggle} />
+            <TreeView
+              root={result.root}
+              expanded={expanded}
+              onToggle={toggle}
+              levels={levels}
+            />
           </div>
 
           <div className="md-head">

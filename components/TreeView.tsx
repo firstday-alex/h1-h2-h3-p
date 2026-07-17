@@ -13,19 +13,51 @@ export function collectHeadingIds(root: RootNode): string[] {
   return ids;
 }
 
+/** Which heading levels (1–5) actually appear on the page, sorted ascending. */
+export function availableLevels(root: RootNode): number[] {
+  const set = new Set<number>();
+  const visit = (node: HeadingNode) => {
+    set.add(node.level);
+    node.children.forEach(visit);
+  };
+  root.children.forEach(visit);
+  return [...set].sort((a, b) => a - b);
+}
+
+/**
+ * Count the heading rows that will actually render directly beneath `node`
+ * given the visible-level filter. A hidden level's children hoist upward, so
+ * they still count toward the parent that renders them.
+ */
+function renderedChildCount(node: HeadingNode, levels: Set<number>): number {
+  let n = 0;
+  for (const c of node.children) {
+    if (levels.has(c.level)) n += 1;
+    else n += renderedChildCount(c, levels);
+  }
+  return n;
+}
+
 export function TreeView({
   root,
   expanded,
   onToggle,
+  levels,
 }: {
   root: RootNode;
   expanded: Set<string>;
   onToggle: (id: string) => void;
+  levels: Set<number>;
 }) {
   const isEmpty = root.children.length === 0 && root.content.length === 0;
   if (isEmpty) {
     return <div className="empty">No core copy was extracted from this page.</div>;
   }
+
+  const visibleHeadingRows = root.children.reduce(
+    (n, c) => n + (levels.has(c.level) ? 1 : renderedChildCount(c, levels)),
+    0,
+  );
 
   return (
     <div className="tree">
@@ -43,8 +75,12 @@ export function TreeView({
           id={`${i}`}
           expanded={expanded}
           onToggle={onToggle}
+          levels={levels}
         />
       ))}
+      {visibleHeadingRows === 0 && root.children.length > 0 && (
+        <div className="empty">No headings match the selected levels.</div>
+      )}
     </div>
   );
 }
@@ -54,23 +90,50 @@ function HeadingRow({
   id,
   expanded,
   onToggle,
+  levels,
 }: {
   node: HeadingNode;
   id: string;
   expanded: Set<string>;
   onToggle: (id: string) => void;
+  levels: Set<number>;
 }) {
+  const visible = levels.has(node.level);
+
+  // Hidden heading: don't render its row or its own content, but hoist any
+  // deeper selected headings up into this position so the outline stays intact.
+  if (!visible) {
+    return (
+      <>
+        {node.children.map((child, i) => (
+          <HeadingRow
+            key={i}
+            node={child}
+            id={`${id}.${i}`}
+            expanded={expanded}
+            onToggle={onToggle}
+            levels={levels}
+          />
+        ))}
+      </>
+    );
+  }
+
   const isOpen = expanded.has(id);
-  const childCount = node.content.length + node.children.length;
+  const childCount = node.content.length + renderedChildCount(node, levels);
+  const collapsible = childCount > 0;
 
   return (
     <div className="node">
       <button
         className="node-row"
-        onClick={() => onToggle(id)}
-        aria-expanded={isOpen}
+        onClick={() => collapsible && onToggle(id)}
+        aria-expanded={collapsible ? isOpen : undefined}
+        style={collapsible ? undefined : { cursor: "default" }}
       >
-        <span className={`chev${isOpen ? " open" : ""}`}>▶</span>
+        <span className={`chev${isOpen ? " open" : ""}`} style={{ visibility: collapsible ? "visible" : "hidden" }}>
+          ▶
+        </span>
         <span className="node-label">
           <span className="lvl">H{node.level}</span>
           <span className="node-title">{node.text}</span>
@@ -82,7 +145,7 @@ function HeadingRow({
         </span>
       </button>
 
-      {isOpen && (
+      {isOpen && collapsible && (
         <div className="children">
           {node.content.map((item, i) => (
             <Leaf key={`c-${i}`} item={item} />
@@ -94,6 +157,7 @@ function HeadingRow({
               id={`${id}.${i}`}
               expanded={expanded}
               onToggle={onToggle}
+              levels={levels}
             />
           ))}
         </div>

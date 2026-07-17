@@ -292,6 +292,40 @@ button { font-family: var(--sans); cursor: pointer; }
   -webkit-backdrop-filter: blur(22px) saturate(160%);
 }
 
+/* --- Heading-level filter --- */
+.levels {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.levels-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-right: 4px;
+}
+.level-toggle {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--faint);
+  padding: 6px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: color 0.12s, border-color 0.12s, background 0.12s, box-shadow 0.12s;
+}
+.level-toggle:hover { border-color: var(--glass-border-strong); color: var(--text); }
+.level-toggle.on {
+  color: #dbe6ff;
+  border-color: rgba(138, 180, 255, 0.6);
+  background: rgba(138, 180, 255, 0.16);
+  box-shadow: 0 0 14px rgba(138, 180, 255, 0.25), var(--glass-hi);
+}
+
 /* ------------------------------------------------------------------ */
 /* Tree                                                                */
 /* ------------------------------------------------------------------ */
