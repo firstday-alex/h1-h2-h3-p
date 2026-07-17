@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { ExtractResult } from "@/lib/types";
+import { analyzeNarrative, type NarrativeReport } from "@/lib/narrative";
 import { TreeView, collectHeadingIds } from "@/components/TreeView";
+import { NarrativeReportView } from "@/components/NarrativeReport";
 
 const EXAMPLE = "https://firstday.com/pages/tdk-behind-the-science-lp";
 
@@ -13,6 +15,7 @@ export default function Home() {
   const [result, setResult] = useState<ExtractResult | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [copied, setCopied] = useState(false);
+  const [report, setReport] = useState<NarrativeReport | null>(null);
 
   const allHeadingIds = useMemo(
     () => (result ? collectHeadingIds(result.root) : []),
@@ -27,6 +30,7 @@ export default function Home() {
     setResult(null);
     setExpanded(new Set());
     setCopied(false);
+    setReport(null);
     try {
       const res = await fetch(`/api/scrape?url=${encodeURIComponent(trimmed)}`);
       const data = await res.json();
@@ -56,6 +60,14 @@ export default function Home() {
   }
   function collapseAll() {
     setExpanded(new Set());
+  }
+
+  function toggleGrade() {
+    if (report) {
+      setReport(null);
+    } else if (result) {
+      setReport(analyzeNarrative(result.root));
+    }
   }
 
   async function copyMarkdown() {
@@ -169,6 +181,12 @@ export default function Home() {
             <button className="btn small" onClick={collapseAll}>
               Collapse all
             </button>
+            <button
+              className={`btn small grade-btn${report ? " active" : ""}`}
+              onClick={toggleGrade}
+            >
+              {report ? "Hide flow grade" : "◇ Grade narrative flow"}
+            </button>
             <span className="spacer" />
             <button className="btn small" onClick={copyMarkdown}>
               Copy markdown
@@ -178,6 +196,12 @@ export default function Home() {
             </button>
             {copied && <span className="copied">✓ Copied</span>}
           </div>
+
+          {report && (
+            <div className="panel grade-panel">
+              <NarrativeReportView report={report} />
+            </div>
+          )}
 
           <div className="panel">
             <TreeView root={result.root} expanded={expanded} onToggle={toggle} />

@@ -41,9 +41,30 @@ The extraction logic lives in [`lib/extract.ts`](lib/extract.ts) and is framewor
 
 - Heading groups **default to collapsed**; click any heading to expand it.
 - **Expand all** / **Collapse all**.
-- Per-item type badges (`P`, `A`, `BTN`, `LI`, `QUOTE`, `CONTENT`) and level tags (`H1`…`H5`).
+- Per-item type badges (`P`, `A`, `BTN`, `LI`, `QUOTE`, `CONTENT`, `BUY-BOX`) and level tags (`H1`…`H5`).
 - **Copy markdown** to clipboard and **Download .md**.
 - A **Raw markdown** textarea for pasting into other tools.
+- **Grade narrative flow** (optional) — see below.
+
+## Narrative flow grade
+
+An optional button that scores how easy the page's **heading outline (H1–H4)** is to
+follow, and draws a visual of the reading path with arrows between headers.
+
+The grade is a **deterministic, explainable heuristic** — not an AI/semantic judgment
+— computed in [`lib/narrative.ts`](lib/narrative.ts) from the heading structure:
+
+- **Skipped levels** (e.g. H1 → H3) — the biggest readability hit; each one is
+  highlighted with an amber arrow in the flow so you can *see* where the story jumps.
+- **Number of H1s** — one clear top-level topic scores best.
+- **Section count** — too many top-level sections is hard to hold in mind.
+- **Heading length** — long headings are harder to scan.
+- **Starting level** — outlines that open below H1 start mid-hierarchy.
+
+It produces a 0–100 score, a band (*Easy to follow → Hard to follow*), a plain-English
+list of what helped or hurt, and the arrow flow diagram (color-coded by level). Because
+it only reads structure, it's labelled as a *structure grade* in the UI — it does not
+claim to judge the writing itself.
 
 ## Run locally
 
