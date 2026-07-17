@@ -325,6 +325,13 @@ button { font-family: var(--sans); cursor: pointer; }
   background: rgba(138, 180, 255, 0.16);
   box-shadow: 0 0 14px rgba(138, 180, 255, 0.25), var(--glass-hi);
 }
+.content-toggle { margin-left: 6px; }
+.content-toggle.on {
+  color: #d7dcea;
+  border-color: rgba(180, 188, 208, 0.55);
+  background: rgba(180, 188, 208, 0.14);
+  box-shadow: 0 0 14px rgba(180, 188, 208, 0.2), var(--glass-hi);
+}
 
 /* ------------------------------------------------------------------ */
 /* Tree                                                                */
@@ -532,6 +539,64 @@ button { font-family: var(--sans); cursor: pointer; }
   padding: 1px 7px;
   border-radius: 999px;
 }
+
+/* ------------------------------------------------------------------ */
+/* Writing grade (AI)                                                  */
+/* ------------------------------------------------------------------ */
+.writing-btn { border-color: rgba(110, 231, 216, 0.4); color: #b7f0e7; }
+.writing-btn:hover:not(:disabled) { border-color: rgba(110, 231, 216, 0.7); }
+.writing-btn.active { background: rgba(110, 231, 216, 0.16); border-color: rgba(110, 231, 216, 0.6); }
+
+.verdict {
+  margin-top: 8px;
+  font-size: 15px;
+  font-weight: 550;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.dims {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+.dim {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.dim-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dim-name { font-weight: 650; font-size: 13.5px; }
+.dim-score {
+  font-size: 12px;
+  font-weight: 750;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+}
+.dim-score.s-good { color: var(--green); border-color: rgba(110, 231, 168, 0.4); }
+.dim-score.s-mid { color: var(--amber); border-color: rgba(255, 207, 122, 0.4); }
+.dim-score.s-low { color: var(--pink); border-color: rgba(255, 158, 216, 0.4); }
+.dim-assessment { margin-top: 6px; font-size: 13px; color: #cfd6ea; line-height: 1.5; }
+.dim-evidence {
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--muted);
+  border-left: 2px solid var(--cyan);
+  padding-left: 10px;
+}
+
+.lists { display: flex; gap: 22px; flex-wrap: wrap; }
+.list-col { flex: 1; min-width: 220px; }
+.list-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.list-title.good { color: var(--green); }
+.list-title.warn { color: var(--amber); }
+.lists ul { margin: 0; padding-left: 18px; }
+.lists li { font-size: 13.5px; color: #cfd6ea; margin-bottom: 5px; line-height: 1.45; }
 
 /* ------------------------------------------------------------------ */
 /* Raw markdown                                                        */

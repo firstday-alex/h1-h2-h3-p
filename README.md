@@ -39,7 +39,12 @@ The extraction logic lives in [`lib/extract.ts`](lib/extract.ts) and is framewor
 
 ## UI features
 
-- Heading groups **default to collapsed**; click any heading to expand it.
+- **Show levels** toggle chips (`H1`–`H5` for the levels present, plus **Content**).
+  Defaults to **H1 + H2 on, Content off**, so you start with a clean heading outline;
+  turning off an intermediate level hoists deeper selected headings up to keep the tree intact.
+- **Content** groups every non-heading item (paragraphs, links, buttons, quotes, buy-box)
+  behind one toggle — off by default so the outline isn't cluttered.
+- On load, **H1 and H2 start expanded**; deeper levels start collapsed.
 - **Expand all** / **Collapse all**.
 - Per-item type badges (`P`, `A`, `BTN`, `LI`, `QUOTE`, `CONTENT`, `BUY-BOX`) and level tags (`H1`…`H5`).
 - **Copy markdown** to clipboard and **Download .md**.
@@ -65,6 +70,32 @@ It produces a 0–100 score, a band (*Easy to follow → Hard to follow*), a pla
 list of what helped or hurt, and the arrow flow diagram (color-coded by level). Because
 it only reads structure, it's labelled as a *structure grade* in the UI — it does not
 claim to judge the writing itself.
+
+## Writing grade (AI, optional)
+
+A second optional button, **"✦ Grade the writing (AI)"**, judges whether the *story
+itself* makes sense — the thing the structural grade can't do. It sends the extracted
+copy to Claude ([`app/api/grade-writing/route.ts`](app/api/grade-writing/route.ts)) with
+a strict rubric and returns an **evidence-cited** critique:
+
+- A 0–100 coherence score + band + one-line verdict.
+- Per-dimension scores for **logical flow, message clarity, consistency, gaps /
+  non-sequiturs, redundancy**, each with a short assessment and a phrase **quoted
+  verbatim from the copy**.
+- Actionable **strengths** and **issues**.
+
+It's kept grounded (judge only the provided text, quote real phrases, allow "unclear")
+and uses structured outputs so the response is always valid. It's clearly labelled as an
+AI reading of the copy — distinct from the deterministic structure grade.
+
+**Requires an API key.** Set `ANTHROPIC_API_KEY` in `.env.local` (local) or in your
+Vercel project's Environment Variables. Without it, the button returns a friendly message
+telling you to set the key. Model: `claude-opus-4-8`; cost is a few cents per grade.
+
+```bash
+# .env.local
+ANTHROPIC_API_KEY=sk-ant-...
+```
 
 ## Run locally
 

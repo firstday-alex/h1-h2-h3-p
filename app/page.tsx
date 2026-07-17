@@ -3,8 +3,15 @@
 import { useMemo, useState } from "react";
 import type { ExtractResult } from "@/lib/types";
 import { analyzeNarrative, type NarrativeReport } from "@/lib/narrative";
-import { TreeView, collectHeadingIds, availableLevels } from "@/components/TreeView";
+import {
+  TreeView,
+  collectHeadingIds,
+  headingIdsForLevels,
+  availableLevels,
+  hasContent,
+} from "@/components/TreeView";
 import { NarrativeReportView } from "@/components/NarrativeReport";
+import { WritingReportView, type WritingReport } from "@/components/WritingReport";
 
 const DEFAULT_LEVELS = [1, 2];
 
@@ -19,6 +26,10 @@ export default function Home() {
   const [copied, setCopied] = useState(false);
   const [report, setReport] = useState<NarrativeReport | null>(null);
   const [levels, setLevels] = useState<Set<number>>(new Set(DEFAULT_LEVELS));
+  const [showContent, setShowContent] = useState(false);
+  const [writing, setWriting] = useState<WritingReport | null>(null);
+  const [writingLoading, setWritingLoading] = useState(false);
+  const [writingError, setWritingError] = useState<string | null>(null);
 
   const allHeadingIds = useMemo(
     () => (result ? collectHeadingIds(result.root) : []),
@@ -26,6 +37,10 @@ export default function Home() {
   );
   const pageLevels = useMemo(
     () => (result ? availableLevels(result.root) : []),
+    [result],
+  );
+  const pageHasContent = useMemo(
+    () => (result ? hasContent(result.root) : false),
     [result],
   );
 
@@ -39,13 +54,19 @@ export default function Home() {
     setCopied(false);
     setReport(null);
     setLevels(new Set(DEFAULT_LEVELS));
+    setShowContent(false);
+    setWriting(null);
+    setWritingError(null);
     try {
       const res = await fetch(`/api/scrape?url=${encodeURIComponent(trimmed)}`);
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Something went wrong.");
       } else {
-        setResult(data as ExtractResult);
+        const r = data as ExtractResult;
+        setResult(r);
+        // Start with H1 + H2 expanded so the outline is visible immediately.
+        setExpanded(new Set(headingIdsForLevels(r.root, new Set(DEFAULT_LEVELS))));
       }
     } catch {
       setError("Network error — could not reach the scraper.");
@@ -84,6 +105,33 @@ export default function Home() {
       setReport(null);
     } else if (result) {
       setReport(analyzeNarrative(result.root));
+    }
+  }
+
+  async function gradeWriting() {
+    if (!result) return;
+    if (writing) {
+      setWriting(null);
+      return;
+    }
+    setWritingLoading(true);
+    setWritingError(null);
+    try {
+      const res = await fetch("/api/grade-writing", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ markdown: result.markdown, title: result.title }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setWritingError(data.error || "The writing grade failed.");
+      } else {
+        setWriting(data.report as WritingReport);
+      }
+    } catch {
+      setWritingError("Network error — could not reach the grader.");
+    } finally {
+      setWritingLoading(false);
     }
   }
 
@@ -204,6 +252,18 @@ export default function Home() {
             >
               {report ? "Hide flow grade" : "◇ Grade narrative flow"}
             </button>
+            <button
+              className={`btn small writing-btn${writing ? " active" : ""}`}
+              onClick={gradeWriting}
+              disabled={writingLoading}
+            >
+              {writingLoading ? <span className="spinner" /> : null}
+              {writingLoading
+                ? "Reading the copy…"
+                : writing
+                  ? "Hide writing grade"
+                  : "✦ Grade the writing (AI)"}
+            </button>
             <span className="spacer" />
             <button className="btn small" onClick={copyMarkdown}>
               Copy markdown
@@ -217,6 +277,14 @@ export default function Home() {
           {report && (
             <div className="panel grade-panel">
               <NarrativeReportView report={report} />
+            </div>
+          )}
+
+          {writingError && <div className="error">{writingError}</div>}
+
+          {writing && (
+            <div className="panel grade-panel writing-panel">
+              <WritingReportView report={writing} />
             </div>
           )}
 
@@ -236,6 +304,15 @@ export default function Home() {
                   </button>
                 );
               })}
+              {pageHasContent && (
+                <button
+                  className={`level-toggle content-toggle${showContent ? " on" : ""}`}
+                  onClick={() => setShowContent((v) => !v)}
+                  aria-pressed={showContent}
+                >
+                  Content
+                </button>
+              )}
             </div>
           )}
 
@@ -245,6 +322,7 @@ export default function Home() {
               expanded={expanded}
               onToggle={toggle}
               levels={levels}
+              showContent={showContent}
             />
           </div>
 
