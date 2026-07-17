@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { DEFAULT_FRAMEWORKS, frameworksForPrompt, type Framework } from "@/lib/frameworks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,10 +33,34 @@ const SCHEMA = {
         required: ["name", "score", "assessment", "evidence"],
       },
     },
+    framework: {
+      type: "object",
+      additionalProperties: false,
+      description: "Which narrative framework the copy most closely follows.",
+      properties: {
+        detected: {
+          type: "string",
+          description: "Exact name of the best-matching framework from the provided list, or 'None' if it doesn't clearly follow any.",
+        },
+        adherence: {
+          type: "integer",
+          description: "0-100: how completely the copy follows that framework's stages in order. 0 if 'None'.",
+        },
+        assessment: {
+          type: "string",
+          description: "1-2 sentences on which stages are present, missing, or out of order.",
+        },
+        evidence: {
+          type: "string",
+          description: "A short phrase quoted verbatim that anchors the match, or empty string.",
+        },
+      },
+      required: ["detected", "adherence", "assessment", "evidence"],
+    },
     strengths: { type: "array", items: { type: "string" } },
     issues: { type: "array", items: { type: "string" } },
   },
-  required: ["verdict", "score", "band", "dimensions", "strengths", "issues"],
+  required: ["verdict", "score", "band", "dimensions", "framework", "strengths", "issues"],
 } as const;
 
 const SYSTEM = `You are an editor evaluating whether the COPY of a landing/marketing page tells a coherent, easy-to-follow story.
@@ -60,7 +85,17 @@ Then give an overall 0-100 "score" and a "band":
 - 40-54 -> "choppy"
 - 0-39 -> "hard" (hard to follow)
 
+FRAMEWORK DETECTION:
+You are also given a list of narrative/copywriting frameworks below. Decide which ONE the copy most closely follows. Use the EXACT name from the list for "framework.detected". If the copy doesn't clearly follow any of them, set "detected" to "None" and "adherence" to 0. Otherwise set "adherence" (0-100) to how completely the copy moves through that framework's stages in order, note in "assessment" which stages are present / missing / out of order, and quote a short verbatim phrase as "evidence". Do not invent a framework that isn't in the list.
+
+Frameworks:
+{{FRAMEWORKS}}
+
 "strengths" and "issues" are short bullet strings a marketer can act on. Keep the whole response concise.`;
+
+function buildSystem(frameworks: Framework[]): string {
+  return SYSTEM.replace("{{FRAMEWORKS}}", frameworksForPrompt(frameworks));
+}
 
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -74,7 +109,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { markdown?: string; title?: string };
+  let body: { markdown?: string; title?: string; frameworks?: Framework[] };
   try {
     body = await req.json();
   } catch {
@@ -83,6 +118,11 @@ export async function POST(req: NextRequest) {
 
   const markdown = (body.markdown || "").trim();
   const title = (body.title || "Untitled page").trim();
+  // Use the frameworks the client sent (bounded), else the shipped defaults.
+  const frameworks =
+    Array.isArray(body.frameworks) && body.frameworks.length > 0
+      ? body.frameworks.slice(0, 30)
+      : DEFAULT_FRAMEWORKS;
   if (!markdown) {
     return NextResponse.json({ error: "No copy to grade — extract a page first." }, { status: 400 });
   }
@@ -97,7 +137,7 @@ export async function POST(req: NextRequest) {
       max_tokens: 12000,
       thinking: { type: "adaptive" },
       output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
-      system: SYSTEM,
+      system: buildSystem(frameworks),
       messages: [
         {
           role: "user",

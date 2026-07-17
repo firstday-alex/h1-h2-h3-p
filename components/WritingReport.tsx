@@ -5,6 +5,7 @@ export interface WritingReport {
   score: number;
   band: "easy" | "clear" | "moderate" | "choppy" | "hard";
   dimensions: Array<{ name: string; score: number; assessment: string; evidence: string }>;
+  framework: { detected: string; adherence: number; assessment: string; evidence: string };
   strengths: string[];
   issues: string[];
 }
@@ -33,6 +34,23 @@ export function WritingReportView({ report }: { report: WritingReport }) {
           </div>
           <div className="verdict">{report.verdict}</div>
         </div>
+      </div>
+
+      <div className={`framework-card${report.framework.detected.toLowerCase() === "none" ? " none" : ""}`}>
+        <div className="framework-head">
+          <span className="framework-tag">Narrative framework</span>
+          <span className="framework-name">{report.framework.detected}</span>
+          {report.framework.detected.toLowerCase() !== "none" && (
+            <span className={`framework-adherence ${scoreClass(report.framework.adherence)}`}>
+              {report.framework.adherence}
+              <span className="fa-out">/100 fit</span>
+            </span>
+          )}
+        </div>
+        <div className="framework-assessment">{report.framework.assessment}</div>
+        {report.framework.evidence && (
+          <div className="dim-evidence">“{report.framework.evidence}”</div>
+        )}
       </div>
 
       <div className="dims">

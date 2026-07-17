@@ -1,8 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ExtractResult } from "@/lib/types";
 import { analyzeNarrative, type NarrativeReport } from "@/lib/narrative";
+import {
+  DEFAULT_FRAMEWORKS,
+  loadFrameworks,
+  saveFrameworks,
+  type Framework,
+} from "@/lib/frameworks";
+import { SettingsMenu } from "@/components/SettingsMenu";
 import {
   TreeView,
   collectHeadingIds,
@@ -30,6 +37,17 @@ export default function Home() {
   const [writing, setWriting] = useState<WritingReport | null>(null);
   const [writingLoading, setWritingLoading] = useState(false);
   const [writingError, setWritingError] = useState<string | null>(null);
+  const [frameworks, setFrameworks] = useState<Framework[]>(DEFAULT_FRAMEWORKS);
+
+  // Load the user's saved frameworks (localStorage) on mount.
+  useEffect(() => {
+    setFrameworks(loadFrameworks());
+  }, []);
+
+  function updateFrameworks(next: Framework[]) {
+    setFrameworks(next);
+    saveFrameworks(next);
+  }
 
   const allHeadingIds = useMemo(
     () => (result ? collectHeadingIds(result.root) : []),
@@ -120,7 +138,11 @@ export default function Home() {
       const res = await fetch("/api/grade-writing", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ markdown: result.markdown, title: result.title }),
+        body: JSON.stringify({
+          markdown: result.markdown,
+          title: result.title,
+          frameworks,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -160,11 +182,14 @@ export default function Home() {
   return (
     <main className="wrap">
       <div className="masthead">
-        <h1>Copy Extractor</h1>
-        <p>
-          Pull the core visible copy off a page — no nav, pop-ups, or footer — grouped by
-          heading and ready to expand, collapse, and copy as markdown.
-        </p>
+        <div className="masthead-text">
+          <h1>Copy Extractor</h1>
+          <p>
+            Pull the core visible copy off a page — no nav, pop-ups, or footer — grouped by
+            heading and ready to expand, collapse, and copy as markdown.
+          </p>
+        </div>
+        <SettingsMenu frameworks={frameworks} onSave={updateFrameworks} />
       </div>
 
       <form

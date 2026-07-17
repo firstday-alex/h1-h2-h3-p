@@ -82,7 +82,19 @@ a strict rubric and returns an **evidence-cited** critique:
 - Per-dimension scores for **logical flow, message clarity, consistency, gaps /
   non-sequiturs, redundancy**, each with a short assessment and a phrase **quoted
   verbatim from the copy**.
+- **Narrative-framework detection** — identifies which of your configured frameworks
+  (AIDA, PAS, StoryBrand, …) the copy most closely follows and scores how completely it
+  moves through that framework's stages, with quoted evidence (or "None").
 - Actionable **strengths** and **issues**.
+
+### Narrative frameworks (editable config)
+
+The frameworks the grader matches against are a config "learning file" —
+[`lib/frameworks.ts`](lib/frameworks.ts) ships 7 popular ones (AIDA, PAS, Before–After–Bridge,
+StoryBrand SB7, The 4 Ps, FAB, PASTOR). Edit them in-app via the **hamburger menu →
+Settings → Narrative frameworks**: add, edit, or remove frameworks (name, stages,
+description). Changes persist in `localStorage` (per browser) and are sent with each
+writing grade, so the AI grades against *your* frameworks.
 
 It's kept grounded (judge only the provided text, quote real phrases, allow "unclear")
 and uses structured outputs so the response is always valid. It's clearly labelled as an
